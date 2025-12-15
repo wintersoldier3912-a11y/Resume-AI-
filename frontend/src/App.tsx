@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Upload, Search, FileText, User, LogOut, Plus, Lock, KeyRound, Eye, Code, ChevronRight, ChevronDown } from 'lucide-react';
+import { 
+  Upload, Search, FileText, User, LogOut, Plus, Lock, KeyRound, 
+  Eye, Code, ChevronRight, ChevronDown, X, Briefcase, GraduationCap, 
+  Calendar, Mail, Phone, MapPin 
+} from 'lucide-react';
 
 // Safe environment variable access
 const ENV_API_URL = (import.meta as any).env?.VITE_API_URL;
@@ -8,12 +12,13 @@ const API_URL = ENV_API_URL || 'http://localhost:8000/api';
 
 interface Candidate {
   id: string;
-  name: string;
-  skills: string[];
-  email: string;
+  name?: string;
+  skills?: string[];
+  email?: string;
   phone?: string;
   experience?: any[];
   education?: any[];
+  raw_text?: string;
 }
 
 interface MatchResult {
@@ -42,6 +47,9 @@ function App() {
   const [previewData, setPreviewData] = useState<Candidate | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
 
+  // View Candidate Modal State
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+
   // Matching State
   const [jobTitle, setJobTitle] = useState('');
   const [jobDesc, setJobDesc] = useState('');
@@ -58,6 +66,7 @@ function App() {
       setCandidates([]);
       setMySkills([]);
       setPreviewData(null);
+      setSelectedCandidate(null);
     }
   }, [token]);
 
@@ -65,6 +74,9 @@ function App() {
     console.error(err);
     if (err.response && err.response.status === 401) {
       logout();
+    } else if (err.response && err.response.data && err.response.data.detail) {
+        // Display backend error messages (like file size limit) in alert or status
+        if (uploadStatus.includes('Uploading')) setUploadStatus(`Error: ${err.response.data.detail}`);
     }
   };
 
@@ -99,6 +111,7 @@ function App() {
     localStorage.removeItem('token');
     setToken(null);
     setPreviewData(null);
+    setSelectedCandidate(null);
   };
 
   const fetchCandidates = async () => {
@@ -156,6 +169,13 @@ function App() {
       setMatches(res.data.matches);
     } catch (err) { handleAxiosError(err); }
     finally { setIsMatching(false); }
+  };
+
+  const handleViewCandidate = async (id: string) => {
+    try {
+      const res = await axios.get(`${API_URL}/candidates/${id}`);
+      setSelectedCandidate(res.data);
+    } catch (err) { handleAxiosError(err); }
   };
 
   // --- Auth View ---
@@ -257,7 +277,7 @@ function App() {
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                 <button onClick={handleUpload} disabled={!file} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">Upload</button>
               </div>
-              {uploadStatus && <p className="text-sm text-blue-600 mb-2">{uploadStatus}</p>}
+              {uploadStatus && <p className={`text-sm mb-2 ${uploadStatus.includes('Error') ? 'text-red-500' : 'text-blue-600'}`}>{uploadStatus}</p>}
 
               {/* Parsing Preview Section */}
               {previewData && (
@@ -276,14 +296,14 @@ function App() {
                   
                   <div className="space-y-2 text-sm">
                     <div className="grid grid-cols-2 gap-2">
-                      <div><span className="text-slate-500">Name:</span> <span className="font-medium">{previewData.name}</span></div>
+                      <div><span className="text-slate-500">Name:</span> <span className="font-medium">{previewData.name || 'Unknown'}</span></div>
                       <div><span className="text-slate-500">Email:</span> <span className="font-medium">{previewData.email || 'N/A'}</span></div>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">Detected Skills:</span>
                       <div className="flex flex-wrap gap-1">
-                        {previewData.skills.length > 0 ? previewData.skills.map(s => (
-                          <span key={s} className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">{s}</span>
+                        {previewData.skills && previewData.skills.length > 0 ? previewData.skills.map((s, idx) => (
+                          <span key={idx} className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">{s}</span>
                         )) : <span className="text-slate-400 italic">No skills detected</span>}
                       </div>
                     </div>
@@ -305,13 +325,21 @@ function App() {
               <div className="max-h-96 overflow-y-auto space-y-3">
                 {candidates.length === 0 ? <p className="text-gray-400">No candidates uploaded yet.</p> : null}
                 {candidates.map(c => (
-                  <div key={c.id} className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-blue-50 transition">
+                  <div key={c.id} className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-blue-50 transition group">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium text-gray-900">{c.name}</p>
-                        <p className="text-xs text-gray-500">{c.email}</p>
+                        <p className="font-medium text-gray-900">{c.name || 'Unknown'}</p>
+                        <p className="text-xs text-gray-500">{c.email || 'No email'}</p>
                       </div>
-                      <span className="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">{c.skills.length} skills</span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">{c.skills ? c.skills.length : 0} skills</span>
+                        <button 
+                          onClick={() => handleViewCandidate(c.id)} 
+                          className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity"
+                        >
+                          <Eye size={14} /> View
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -338,19 +366,99 @@ function App() {
                     </div>
                   ) : null}
                 {matches.map((m) => (
-                    <div key={m.candidate_id} className="relative p-4 bg-white rounded-lg border border-gray-200 shadow-sm transition hover:shadow-md">
+                    <div key={m.candidate_id} className="relative p-4 bg-white rounded-lg border border-gray-200 shadow-sm transition hover:shadow-md cursor-pointer" onClick={() => handleViewCandidate(m.candidate_id)}>
                       <div className="absolute top-4 right-4 text-emerald-600 font-bold text-xl">{Math.round(m.score * 100)}%</div>
-                      <h4 className="font-bold text-lg text-gray-800">{m.name}</h4>
+                      <h4 className="font-bold text-lg text-gray-800 hover:text-emerald-600">{m.name}</h4>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {m.matched_skills.map(s => <span key={s} className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-md border border-emerald-100">{s}</span>)}
+                        {m.matched_skills.map((s, idx) => <span key={idx} className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-md border border-emerald-100">{s}</span>)}
                       </div>
+                      <p className="text-xs text-gray-400 mt-2 text-right">Click to view profile</p>
                     </div>
                   ))}
               </div>
             </div>
           </div>
-
         </div>
+
+        {/* Candidate Detail Modal */}
+        {selectedCandidate && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setSelectedCandidate(null)}>
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex justify-between items-start z-10">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">{selectedCandidate.name || 'Unknown Candidate'}</h2>
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 text-sm text-gray-500">
+                                <span className="flex items-center gap-1"><Mail size={14}/> {selectedCandidate.email || 'No email'}</span>
+                                {selectedCandidate.phone && <span className="flex items-center gap-1"><Phone size={14}/> {selectedCandidate.phone}</span>}
+                            </div>
+                        </div>
+                        <button onClick={() => setSelectedCandidate(null)} className="p-2 hover:bg-gray-100 rounded-full transition">
+                            <X size={24} className="text-gray-500"/>
+                        </button>
+                    </div>
+                    
+                    <div className="p-6 space-y-8">
+                        {/* Skills */}
+                        <div>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Skills</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedCandidate.skills && selectedCandidate.skills.length > 0 ? selectedCandidate.skills.map((s, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-100">
+                                        {s}
+                                    </span>
+                                )) : <span className="text-gray-400 italic text-sm">No skills found</span>}
+                            </div>
+                        </div>
+
+                        {/* Experience */}
+                        <div>
+                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <Briefcase size={16}/> Experience
+                             </h3>
+                             <div className="space-y-6">
+                                {selectedCandidate.experience && selectedCandidate.experience.length > 0 ? selectedCandidate.experience.map((exp: any, i: number) => (
+                                    <div key={i} className="pl-4 border-l-2 border-gray-200 relative">
+                                        <div className="absolute -left-[5px] top-1.5 w-2 h-2 bg-gray-300 rounded-full"></div>
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-1">
+                                            <h4 className="font-bold text-gray-900 text-lg">{exp.role || 'Role Unknown'}</h4>
+                                            <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{exp.start} — {exp.end}</span>
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-600 mb-2">{exp.company}</div>
+                                        <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{exp.description}</p>
+                                    </div>
+                                )) : <p className="text-gray-400 italic text-sm">No experience listed.</p>}
+                             </div>
+                        </div>
+
+                        {/* Education */}
+                        <div>
+                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <GraduationCap size={16}/> Education
+                             </h3>
+                             <div className="grid gap-3 sm:grid-cols-2">
+                                {selectedCandidate.education && selectedCandidate.education.length > 0 ? selectedCandidate.education.map((edu: any, i: number) => (
+                                    <div key={i} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                        <h4 className="font-bold text-gray-900">{edu.degree}</h4>
+                                        <div className="text-sm text-gray-500 mt-1">{edu.institution}</div>
+                                        <div className="text-xs text-gray-400 mt-2 flex items-center gap-1"><Calendar size={12}/> {edu.year}</div>
+                                    </div>
+                                )) : <p className="text-gray-400 italic text-sm">No education listed.</p>}
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+                         <details>
+                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 font-medium select-none">Debug: View Raw JSON</summary>
+                            <pre className="mt-2 p-3 bg-gray-900 text-gray-50 rounded-lg text-xs overflow-x-auto font-mono">
+                                {JSON.stringify(selectedCandidate, null, 2)}
+                            </pre>
+                         </details>
+                    </div>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );
