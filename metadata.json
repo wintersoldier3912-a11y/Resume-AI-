@@ -1,0 +1,5 @@
+{
+  "name": "ResumeAI - Intelligent Parser & Matcher",
+  "description": "An MVP platform to upload resumes, parse them using NLP, store structured data in Postgres, and perform semantic matching against job descriptions using vector embeddings.",
+  "requestFramePermissions": []
+}
