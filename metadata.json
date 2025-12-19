@@ -1,5 +1,5 @@
 {
-  "name": "ResumeAI - Intelligent Parser & Matcher",
-  "description": "An MVP platform to upload resumes, parse them using NLP, store structured data in Postgres, and perform semantic matching against job descriptions using vector embeddings.",
+  "name": "ResumeAI - Intelligent Entity Extractor",
+  "description": "High-accuracy resume parsing and candidate matching using Gemini AI and structured NER extraction.",
   "requestFramePermissions": []
 }

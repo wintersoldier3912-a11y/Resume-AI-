@@ -1,5 +1,5 @@
 {
-  "name": "resumeai---intelligent-parser-&-matcher",
+  "name": "resumeai---intelligent-entity-extractor",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,11 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "lucide-react": "0.330.0",
+    "axios": "1.6.7",
+    "@google/genai": "0.2.1",
+    "vite": "^7.3.0",
+    "@vitejs/plugin-react": "^5.1.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    
+    "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
